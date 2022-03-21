@@ -1,0 +1,20 @@
+{
+  "name": "dotstorage-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Scripts for working with dotStorage",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alan Shaw",
+  "license": "MIT",
+  "dependencies": {
+    "@nftstorage/ipfs-cluster": "^4.0.0",
+    "@web-std/fetch": "^4.0.0",
+    "dotenv": "^16.0.0",
+    "sade": "^1.8.1"
+  }
+}

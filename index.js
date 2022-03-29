@@ -35,5 +35,20 @@ prog
       console.log(p.ipfs.addresses[0])
     })
   })
+  .command('show-cluster-cid-status <cid>')
+  .describe('Show the status for a CID in Cluster')
+  .action(async (cid) => {
+    dotenv.config()
+    global.fetch = fetch
+
+    const client = new Cluster(mustGetEnv('CLUSTER_API_URL'), {
+      headers: { Authorization: `Basic ${mustGetEnv('CLUSTER_BASIC_AUTH_TOKEN')}` }
+    })
+
+    const status = await client.status(cid)
+    Object.entries(status.peerMap).forEach(([id, info]) => {
+      console.log(`    > ${info.peerName || id}: ${info.status.toUpperCase()} | ${info.timestamp.toISOString()}`)
+    })
+  })
 
 prog.parse(process.argv)

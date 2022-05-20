@@ -32,6 +32,7 @@ prog
 
     peers.forEach(p => {
       console.log(`# ${p.peerName}`)
+      if (p.error) return console.error(p.error)
       console.log(p.ipfs.addresses[0])
     })
   })

@@ -4,7 +4,7 @@ Administrative CLI tools for developers working on dotStorage.
 
 ## Usage
 
-Clone the repo, install deps (`npm i`) then link `npm link`:
+Clone the repo, install deps (`npm install`) then (`npm link`) and then:
 
 ```console
 $ dotstorage --help

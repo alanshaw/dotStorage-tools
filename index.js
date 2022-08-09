@@ -94,6 +94,7 @@ prog
     await fs.promises.mkdir(cacheDir, { recursive: true })
 
     const b64Multihash = base64pad.encode(CID.parse(contentCid).multihash.bytes).slice(1)
+    console.log('searching for', b64Multihash)
     let i = 0
     while (true) {
       console.log(`Advert #${i}: ${advertCid}`)
@@ -108,7 +109,7 @@ prog
       const entriesUrl = new URL(entriesCid, endpoint)
       const entries = await readJson(entriesUrl, cacheDir)
 
-      const found = entries.Entries.some(e => e['/'] === b64Multihash)
+      const found = entries.Entries.some(e => e['/'].bytes === b64Multihash)
       if (found) return console.log(`✅ ${contentCid} found in advert ${advertCid}`)
 
       advertCid = advert.PreviousID['/']

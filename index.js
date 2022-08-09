@@ -27,11 +27,11 @@ prog
     peers.sort((a, b) => a.peerName > b.peerName ? 1 : -1)
 
     if (options.csv) {
-      return console.log(peers.map(p => p.ipfs.addresses[0]).join(','))
+      return console.log(peers.filter(p => !p.error).map(p => p.ipfs.addresses[0]).join(','))
     }
 
     peers.forEach(p => {
-      console.log(`# ${p.peerName}`)
+      console.log(`# ${p.peerName || p.id}`)
       if (p.error) return console.error(p.error)
       console.log(p.ipfs.addresses[0])
     })

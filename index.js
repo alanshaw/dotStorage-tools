@@ -6,6 +6,10 @@ import { Cluster } from '@nftstorage/ipfs-cluster'
 import fetch from '@web-std/fetch'
 import { CarIndexedReader } from '@ipld/car'
 import { CID } from 'multiformats'
+import { base64pad } from 'multiformats/bases/base64'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { mustGetEnv } from './utils.js'
 import { walkDag } from './dag-walker.js'
 
@@ -75,5 +79,60 @@ prog
     await walkDag(root, readers)
     console.log(`✅ ${root} is a complete DAG in these CAR(s)`)
   })
+  .command('find-advert <content-cid>')
+  .describe('Find the advertisement file that contains a CID')
+  .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
+  .action(async (contentCid, options) => {
+    const endpoint = options.url
+
+    const headUrl = new URL('head', endpoint)
+    const headRes = await fetch(headUrl)
+    const head = await headRes.json()
+    let advertCid = head.head['/']
+
+    const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'find-advert')
+    await fs.promises.mkdir(cacheDir, { recursive: true })
+
+    const b64Multihash = base64pad.encode(CID.parse(contentCid).multihash.bytes).slice(1)
+    let i = 0
+    while (true) {
+      console.log(`Advert #${i}: ${advertCid}`)
+      const advertUrl = new URL(advertCid, endpoint)
+      const advert = await readJson(advertUrl, cacheDir)
+
+      if (!advert.PreviousID) return console.log(`😭 ${contentCid} not advertised`)
+      console.log(`  Previous ID: ${advert.PreviousID['/']}`)
+
+      const entriesCid = advert.Entries['/']
+      console.log(`  Entries: ${entriesCid}`)
+      const entriesUrl = new URL(entriesCid, endpoint)
+      const entries = await readJson(entriesUrl, cacheDir)
+
+      const found = entries.Entries.some(e => e['/'] === b64Multihash)
+      if (found) return console.log(`✅ ${contentCid} found in advert ${advertCid}`)
+
+      advertCid = advert.PreviousID['/']
+      i++
+    }
+  })
+
+/**
+ * Read JSON from a URL and cache it at the passed location.
+ * @param {URL} url
+ * @param {string} cacheDir
+ */
+async function readJson (url, cacheDir) {
+  const cacheFilePath = path.join(cacheDir, url.pathname)
+  try {
+    const json = await fs.promises.readFile(cacheFilePath)
+    return JSON.parse(json)
+  } catch {}
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`failed to fetch: ${url}, status: ${res.status}`)
+  const json = await res.text()
+  const data = JSON.parse(json)
+  await fs.promises.writeFile(cacheFilePath, json)
+  return data
+}
 
 prog.parse(process.argv)

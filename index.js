@@ -4,9 +4,12 @@ import sade from 'sade'
 import dotenv from 'dotenv'
 import { Cluster } from '@nftstorage/ipfs-cluster'
 import fetch from '@web-std/fetch'
+import { CarIndexedReader } from '@ipld/car'
+import { CID } from 'multiformats'
 import { mustGetEnv } from './utils.js'
+import { walkDag } from './dag-walker.js'
 
-const prog = sade('dst')
+const prog = sade('dotstorage')
 
 prog.version('0.0.0')
 
@@ -50,6 +53,27 @@ prog
     Object.entries(status.peerMap).forEach(([id, info]) => {
       console.log(`    > ${info.peerName || id}: ${info.status.toUpperCase()} | ${info.timestamp.toISOString()}`)
     })
+  })
+  .command('is-dag-complete <car-path>...')
+  .describe('Determine if a CAR file(s) contains a complete DAG')
+  .option('--root', 'Root CID of the DAG (derived from CAR files if not set)')
+  .action(async (path, options) => {
+    const paths = [path, ...options._]
+    const readers = await Promise.all(paths.map(f => CarIndexedReader.fromFile(f)))
+    let root = options.root ? CID.parse(options.root) : null
+    if (!root) {
+      for (const r of readers) {
+        const roots = await r.getRoots()
+        if (roots[0]) {
+          root = roots[0]
+          break
+        }
+      }
+      if (!root) throw new Error('root not found in CAR(s), use --root to specify')
+    }
+    console.log(`🦷 Walking DAG from root: ${root}`)
+    await walkDag(root, readers)
+    console.log(`✅ ${root} is a complete DAG in these CAR(s)`)
   })
 
 prog.parse(process.argv)

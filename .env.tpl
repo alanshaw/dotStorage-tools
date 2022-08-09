@@ -1,0 +1,3 @@
+# Cluster admin
+CLUSTER_BASIC_AUTH_TOKEN=
+CLUSTER_API_URL=

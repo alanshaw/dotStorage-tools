@@ -94,7 +94,6 @@ prog
     await fs.promises.mkdir(cacheDir, { recursive: true })
 
     const b64Multihash = base64pad.encode(CID.parse(contentCid).multihash.bytes).slice(1)
-    console.log('searching for', b64Multihash)
     let i = 0
     while (true) {
       console.log(`Advert #${i}: ${advertCid}`)

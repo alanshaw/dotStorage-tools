@@ -79,7 +79,7 @@ prog
     await walkDag(root, readers)
     console.log(`✅ ${root} is a complete DAG in these CAR(s)`)
   })
-  .command('find-advert <content-cid>')
+  .command('find-advert <cid>')
   .describe('Find the advertisement file that contains a CID')
   .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
   .action(async (contentCid, options) => {

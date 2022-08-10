@@ -16,6 +16,7 @@ $ dotstorage --help
     list-cluster-ipfs-peers    Display IPFS peers in the Cluster
     show-cluster-cid-status    Show the status for a CID in Cluster
     is-dag-complete            Determine if a CAR file(s) contains a complete DAG
+    find-advert                Find the advertisement file that contains a CID
 
   For more info, run any command with the `--help` flag
     $ dotstorage list-cluster-ipfs-peers --help

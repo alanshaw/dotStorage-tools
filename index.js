@@ -98,8 +98,7 @@ prog
     let advertCid = head.head['/']
     let advert = await readJson(new URL(advertCid, endpoint), cacheDir)
 
-    let i = 0
-    while (true) {
+    for (let i = 0; true; i++) {
       if (!advert) throw new Error(`😭 ${contentCid} not advertised`)
       console.log(`Advert #${i}: ${advertCid}`)
 
@@ -118,7 +117,6 @@ prog
 
       advert = await nextAdvertPromise
       advertCid = nextAdvertCid
-      i++
     }
   })
   // Note: adverts are cached at ~/.dotstorage/cache/adverts/*
@@ -136,8 +134,7 @@ prog
     await fs.promises.mkdir(cacheDir, { recursive: true })
 
     let advertCid = head.head['/']
-    let i = 0
-    while (true) {
+    for (let i = 0; true; i++) {
       if (sinceAdvertCid === advertCid) return
 
       const advertUrl = new URL(advertCid, endpoint)
@@ -147,7 +144,6 @@ prog
       if (!advert.PreviousID) throw new Error(`😭 ${sinceAdvertCid} not found`)
 
       advertCid = advert.PreviousID['/']
-      i++
     }
   })
 

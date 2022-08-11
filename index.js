@@ -79,9 +79,9 @@ prog
     await walkDag(root, readers)
     console.log(`✅ ${root} is a complete DAG in these CAR(s)`)
   })
-  // Note: adverts are cached at ~/.dotstorage/cache/find-advert/*
+  // Note: adverts are cached at ~/.dotstorage/cache/adverts/*
   .command('find-advert <cid>')
-  .describe('Find the advertisement file that contains a CID')
+  .describe('Find the Indexer Node advertisement that contains a CID')
   .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
   .action(async (contentCid, options) => {
     const endpoint = options.url
@@ -89,28 +89,62 @@ prog
     const headUrl = new URL('head', endpoint)
     const headRes = await fetch(headUrl)
     const head = await headRes.json()
-    let advertCid = head.head['/']
 
-    const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'find-advert')
+    const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'adverts')
     await fs.promises.mkdir(cacheDir, { recursive: true })
 
     const b64Multihash = base64pad.encode(CID.parse(contentCid).multihash.bytes).slice(1)
+
+    let advertCid = head.head['/']
+    let advert = await readJson(new URL(advertCid, endpoint), cacheDir)
+
     let i = 0
     while (true) {
+      if (!advert) throw new Error(`😭 ${contentCid} not advertised`)
       console.log(`Advert #${i}: ${advertCid}`)
-      const advertUrl = new URL(advertCid, endpoint)
-      const advert = await readJson(advertUrl, cacheDir)
 
-      if (!advert.PreviousID) return console.log(`😭 ${contentCid} not advertised`)
-      console.log(`  Previous ID: ${advert.PreviousID['/']}`)
+      const nextAdvertCid = advert.PreviousID ? advert.PreviousID['/'] : null
+      const nextAdvertUrl = nextAdvertCid ? new URL(nextAdvertCid, endpoint) : null
+      const nextAdvertPromise = nextAdvertUrl ? readJson(nextAdvertUrl, cacheDir) : Promise.resolve()
 
       const entriesCid = advert.Entries['/']
-      console.log(`  Entries: ${entriesCid}`)
       const entriesUrl = new URL(entriesCid, endpoint)
       const entries = await readJson(entriesUrl, cacheDir)
 
+      console.log(`  └─ Entries: ${entriesCid} (${entries.Entries.length} total)`)
+
       const found = entries.Entries.some(e => e['/'].bytes === b64Multihash)
       if (found) return console.log(`✅ ${contentCid} found in advert ${advertCid}`)
+
+      advert = await nextAdvertPromise
+      advertCid = nextAdvertCid
+      i++
+    }
+  })
+  // Note: adverts are cached at ~/.dotstorage/cache/adverts/*
+  .command('adverts-since <advert-cid>')
+  .describe('Display CIDs of adverts created since the passed advert CID')
+  .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
+  .action(async (sinceAdvertCid, options) => {
+    const endpoint = options.url
+
+    const headUrl = new URL('head', endpoint)
+    const headRes = await fetch(headUrl)
+    const head = await headRes.json()
+
+    const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'adverts')
+    await fs.promises.mkdir(cacheDir, { recursive: true })
+
+    let advertCid = head.head['/']
+    let i = 0
+    while (true) {
+      if (sinceAdvertCid === advertCid) return
+
+      const advertUrl = new URL(advertCid, endpoint)
+      const advert = await readJson(advertUrl, cacheDir)
+      console.log(`Advert #${i}: ${advertCid}`)
+
+      if (!advert.PreviousID) throw new Error(`😭 ${sinceAdvertCid} not found`)
 
       advertCid = advert.PreviousID['/']
       i++

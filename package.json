@@ -17,6 +17,7 @@
   "dependencies": {
     "@ipld/car": "^4.1.4",
     "@ipld/dag-cbor": "^7.0.2",
+    "@ipld/dag-json": "^10.2.0",
     "@ipld/dag-pb": "^2.1.17",
     "@nftstorage/ipfs-cluster": "^5.0.1",
     "@web-std/fetch": "^4.0.0",

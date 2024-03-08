@@ -6,7 +6,10 @@ import { Cluster } from '@nftstorage/ipfs-cluster'
 import fetch from '@web-std/fetch'
 import { CarIndexedReader } from '@ipld/car'
 import { CID } from 'multiformats'
+import * as Digest from 'multiformats/hashes/digest'
 import { base64pad } from 'multiformats/bases/base64'
+import * as raw from 'multiformats/codecs/raw'
+import * as dagJSON from '@ipld/dag-json'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -144,6 +147,29 @@ prog
       if (!advert.PreviousID) throw new Error(`😭 ${sinceAdvertCid} not found`)
 
       advertCid = advert.PreviousID['/']
+    }
+  })
+  // Note: adverts are cached at ~/.dotstorage/cache/adverts/*
+  .command('list-advert-entries <advert-cid>')
+  .describe('Display CIDs of adverts entries for passed advert CID')
+  .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
+  .action(async (advertCid, options) => {
+    const endpoint = options.url
+    const advertUrl = new URL(advertCid, endpoint)
+
+    const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'adverts')
+    await fs.promises.mkdir(cacheDir, { recursive: true })
+
+    const advert = await readJson(advertUrl, cacheDir)
+
+    const entriesUrl = new URL(advert.Entries['/'], endpoint)
+    console.log(`Fetching entries from: ${entriesUrl}`)
+    const res = await fetch(entriesUrl)
+    if (!res.ok) throw new Error(`failed to fetch: ${entriesUrl}, status: ${res.status}`)
+    const data = dagJSON.parse(await res.text())
+
+    for (const entry of data.Entries) {
+      console.log(CID.createV1(raw.code, Digest.decode(entry)).toString())
     }
   })
 

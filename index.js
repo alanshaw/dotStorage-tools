@@ -179,7 +179,7 @@ prog
  * @param {string} cacheDir
  */
 async function readJson (url, cacheDir) {
-  const cacheFilePath = path.join(cacheDir, url.pathname)
+  const cacheFilePath = path.join(cacheDir, url.pathname.split('/').pop())
   try {
     const json = await fs.promises.readFile(cacheFilePath)
     return JSON.parse(json)

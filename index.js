@@ -8,6 +8,7 @@ import { CarIndexedReader } from '@ipld/car'
 import { CID } from 'multiformats'
 import * as Digest from 'multiformats/hashes/digest'
 import { base64pad } from 'multiformats/bases/base64'
+import { base58btc } from 'multiformats/bases/base58'
 import * as raw from 'multiformats/codecs/raw'
 import * as dagJSON from '@ipld/dag-json'
 import fs from 'fs'
@@ -86,6 +87,7 @@ prog
   .command('find-advert <cid>')
   .describe('Find the Indexer Node advertisement that contains a CID')
   .option('--url', 'URL of the root location where adverts can be found.', 'https://ipfs-advertisement.s3.us-west-2.amazonaws.com')
+  .option('--verbose', 'Be more noisy.', false)
   .action(async (contentCid, options) => {
     const endpoint = options.url
 
@@ -96,7 +98,8 @@ prog
     const cacheDir = path.join(os.homedir(), '.dotstorage', 'cache', 'adverts')
     await fs.promises.mkdir(cacheDir, { recursive: true })
 
-    const b64Multihash = base64pad.encode(CID.parse(contentCid).multihash.bytes).slice(1)
+    const cid = CID.parse(contentCid)
+    const b64Multihash = base64pad.encode(cid.multihash.bytes).slice(1)
 
     let advertCid = head.head['/']
     let advert = await readJson(new URL(advertCid, endpoint), cacheDir)
@@ -115,8 +118,20 @@ prog
 
       console.log(`  └─ Entries: ${entriesCid} (${entries.Entries.length} total)`)
 
-      const found = entries.Entries.some(e => e['/'].bytes === b64Multihash)
-      if (found) return console.log(`✅ ${contentCid} found in advert ${advertCid}`)
+      let found = false
+      if (options.verbose) {
+        const indent = '              '
+        for (const e of entries.Entries) {
+          if (e['/'].bytes === b64Multihash) {
+            found = true
+            break
+          }
+          console.log(`${indent}❌ ${base58btc.encode(Digest.decode(base64pad.baseDecode(e['/'].bytes)).bytes)}`)
+        }
+      } else {
+        found = entries.Entries.some(e => e['/'].bytes === b64Multihash)
+      }
+      if (found) return console.log(`✅ ${contentCid} (${base58btc.encode(cid.multihash.bytes)}) found in advert ${advertCid}`)
 
       advert = await nextAdvertPromise
       advertCid = nextAdvertCid

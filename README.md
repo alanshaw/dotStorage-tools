@@ -27,3 +27,25 @@ $ dotstorage --help
     -v, --version    Displays current version
     -h, --help       Displays this message
 ```
+
+## Useful commands
+
+### Export all uploads CIDs in space
+
+```sh
+aws dynamodb query \
+    --table-name prod-w3infra-upload \
+    --region us-west-2 \
+    --key-condition-expression "#s = :pk" \
+    --expression-attribute-names '{"#s":"space"}' \
+    --expression-attribute-values '{":pk":{"S":"did:key:z..."}}' \
+    --projection-expression root \
+    --query 'Items[*].root.S' \
+    --output text > uploads.txt
+```
+
+This will stream to a TSV and you can replace tabs with newline using:
+
+```sh
+sed 's/\t/\n/g' uploads.txt > uploads.csv
+```

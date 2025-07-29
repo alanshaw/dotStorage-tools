@@ -199,12 +199,16 @@ async function readJson (url, cacheDir) {
     const json = await fs.promises.readFile(cacheFilePath)
     return JSON.parse(json)
   } catch {}
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`failed to fetch: ${url}, status: ${res.status}`)
-  const json = await res.text()
-  const data = JSON.parse(json)
-  await fs.promises.writeFile(cacheFilePath, json)
-  return data
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`failed to fetch: ${url}, status: ${res.status}`)
+    const json = await res.text()
+    const data = JSON.parse(json)
+    await fs.promises.writeFile(cacheFilePath, json)
+    return data
+  } catch (err) {
+    throw new Error(`failed to fetch: ${url}`, { cause: err })
+  }
 }
 
 prog.parse(process.argv)
